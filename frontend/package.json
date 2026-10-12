@@ -1,0 +1,22 @@
+{
+  "name": "trishul-q-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "TRISHUL-Q public React application (landing page + user & admin consoles)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:esbuild": "esbuild src/main.jsx --bundle --outfile=dist/assets/app.js --loader:.jsx=jsx --loader:.css=css --jsx=automatic --define:process.env.NODE_ENV='\"production\"' --minify && cp public/favicon.svg dist/favicon.svg"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.8"
+  }
+}

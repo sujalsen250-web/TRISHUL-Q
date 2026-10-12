@@ -1,0 +1,24 @@
+# TRISHUL-Q — backend requirements
+# Python 3.10+ (developed on 3.12)
+
+# --- web / API ---
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+httpx>=0.27                 # Google OAuth exchange + tests
+
+# --- database (PostgreSQL primary; SQLite fallback for local dev/tests) ---
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9        # PostgreSQL driver
+
+# --- scientific core (Pauli eigenstates, teleportation, statistics) ---
+numpy>=1.26
+scipy>=1.11                 # 3-sigma calibration z-scores + QRNG chi-square test
+
+# --- utilities ---
+reportlab>=4.0              # PDF export (TRISHUL-Q header)
+qrcode>=7.0                 # LAN URL QR code
+psutil>=5.9                 # real CPU/memory metrics for the admin graph
+
+# --- tests ---
+pytest>=8.0

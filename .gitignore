@@ -1,0 +1,13 @@
+# TRISHUL-Q
+.env
+*.pyc
+__pycache__/
+.pytest_cache/
+data/
+uploads/
+*.db
+node_modules/
+frontend/dist/
+frontend/.vite/
+.DS_Store
+*.log

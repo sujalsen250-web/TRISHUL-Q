@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TRISHUL-Q — Super Admin (localhost)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230b1020'/><g stroke='%23e6a23c' stroke-width='3.4' fill='none'><path d='M20 16v16'/><path d='M32 12v20'/><path d='M44 16v16'/><path d='M32 30v18'/><path d='M20 32c0 6 5 10 12 10s12-4 12-10'/></g></svg>" />
+<style>
+  :root { --bg:#0b0a14; --panel:#161327; --border:#312a4d; --ink:#efeaf9; --muted:#a79fc4;
+          --accent:#e6a23c; --ok:#2fbf71; --bad:#e5484d; --mono:'JetBrains Mono',Consolas,monospace; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--ink);
+         background: radial-gradient(900px 520px at 85% -8%, rgba(230,162,60,.16), transparent 60%),
+                     linear-gradient(180deg,#0b0a14,#05040c); min-height:100vh; }
+  .top { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border);
+         background:rgba(11,10,20,.85); position:sticky; top:0; z-index:5; }
+  .logo { width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-weight:900;font-family:var(--mono);
+          background:linear-gradient(135deg,#c2703d,#e6a23c); color:#fff; }
+  .badge { margin-left:auto; padding:6px 13px; border-radius:999px; font-size:12px; font-weight:800;
+           color:var(--accent); border:1px solid rgba(230,162,60,.4); background:rgba(230,162,60,.1); }
+  .wrap { max-width:1160px; margin:0 auto; padding:22px 20px 50px; }
+  .card { background:linear-gradient(180deg,var(--panel),#0f0d1c); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:16px; }
+  .grid { display:grid; gap:14px; } .g2{grid-template-columns:1fr 1fr;} .g3{grid-template-columns:repeat(3,1fr);} .g4{grid-template-columns:repeat(4,1fr);}
+  @media(max-width:820px){.g2,.g3,.g4{grid-template-columns:1fr;}}
+  .kpi .v { font-size:26px; font-weight:800; font-family:var(--mono); } .kpi .l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.8px;}
+  label { display:block; font-size:12px; color:var(--muted); margin:10px 0 5px; font-weight:600; }
+  input,select,textarea { width:100%; padding:10px 12px; border-radius:10px; background:#0d0b18; border:1px solid var(--border); color:var(--ink); font-size:14px; }
+  button { padding:9px 15px; border-radius:10px; border:1px solid var(--border); background:#221c3b; color:var(--ink); font-weight:700; cursor:pointer; font-size:13px; }
+  button.primary { background:linear-gradient(135deg,#c2703d,#e6a23c); border:0; color:#fff; }
+  button.sm { padding:6px 10px; font-size:12px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; } th,td{ text-align:left; padding:8px 9px; border-bottom:1px solid var(--border);} th{color:var(--muted);font-size:11px;text-transform:uppercase;}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;} .tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .alert{border-radius:10px;padding:10px 13px;margin-top:10px;font-size:13px;} .alert.ok{background:rgba(47,191,113,.12);color:#9be6bd;} .alert.err{background:rgba(229,72,77,.12);color:#ffb4b6;} .alert.warn{background:rgba(230,162,60,.12);color:#ffd79a;}
+  .mono{font-family:var(--mono);} .muted{color:var(--muted);} .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  pre{background:#0d0b18;border:1px solid var(--border);border-radius:10px;padding:12px;white-space:pre-wrap;font-family:var(--mono);font-size:12.5px;}
+  #app{display:none;}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">SA</div>
+  <div><b>TRISHUL-Q SUPER ADMIN</b><div class="muted" style="font-size:11px">Local security administration</div></div>
+  <span class="badge">🔒 LOCALHOST ONLY</span>
+</div>
+
+<div class="wrap" id="login">
+  <div class="card" style="max-width:420px;margin:40px auto">
+    <h2 style="margin-top:0">Super Admin sign-in</h2>
+    <p class="muted" style="font-size:13px">Works only on this machine (127.0.0.1). Blocked from the network/public URL by design.</p>
+    <label>Username</label><input id="su_user" class="mono" value="superadmin" />
+    <label>Password</label><input id="su_pass" type="password" />
+    <div style="margin-top:16px"><button class="primary" style="width:100%" onclick="login()">ENTER SUPER ADMIN PANEL</button></div>
+    <div id="login_err" class="alert err" style="display:none"></div>
+  </div>
+</div>
+
+<div class="wrap" id="app">
+  <div class="tabs" id="tabs"></div>
+  <div id="view"></div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function api(path, opts={}) {
+  const cfg = { credentials:"same-origin", headers:{}, ...opts };
+  if (cfg.body && !(cfg.body instanceof FormData)) { cfg.headers["Content-Type"]="application/json"; cfg.body=JSON.stringify(cfg.body); }
+  const res = await fetch(path, cfg);
+  let data=null; try{ data=await res.json(); }catch(e){}
+  if(!res.ok) throw new Error(data && data.detail ? data.detail : "Request failed ("+res.status+")");
+  return data;
+}
+const fmt = (t) => t ? new Date(t).toLocaleString() : "—";
+function copyText(text, label){ navigator.clipboard.writeText(text).then(()=>alert((label||"Copied")+" ✓"), ()=>alert(text)); }
+
+const TABS = ["Overview","Admin Requests","Admins","Users","Security Events","Attack Analytics","Audit Logs","Auth Events","System Status","Messages","Mail"];
+let tab = "Overview";
+let lastAccount = null, lastWelcome = "", lastRecipients = [];
+
+// --- FIX: keep whatever the user has typed when the view re-renders ---------
+// Switching tabs, refreshing or any auto-load replaces #view's innerHTML,
+// which used to wipe half-filled forms (e.g. the Mail panel). We stash every
+// input/textarea/select value by id and restore it after each render.
+const FORM_STATE = {};
+function stashForm(){
+  document.querySelectorAll("#view input, #view textarea, #view select").forEach(el => {
+    if(!el.id) return;
+    FORM_STATE[el.id] = (el.type === "checkbox" || el.type === "radio") ? el.checked : el.value;
+  });
+}
+function restoreForm(){
+  document.querySelectorAll("#view input, #view textarea, #view select").forEach(el => {
+    if(!el.id || !(el.id in FORM_STATE)) return;
+    if(el.type === "checkbox" || el.type === "radio") el.checked = FORM_STATE[el.id];
+    else el.value = FORM_STATE[el.id];
+  });
+}
+
+function renderTabs(){ $("#tabs").innerHTML = TABS.map(t=>`<button class="${t===tab?'active':''}" onclick="setTab('${t}')">${t}</button>`).join(""); }
+function setTab(t){ tab=t; renderTabs(); load(); }
+
+async function login(){
+  $("#login_err").style.display="none";
+  try{
+    await api("/api/superadmin/login",{method:"POST",body:{username:$("#su_user").value.trim(),password:$("#su_pass").value}});
+    $("#login").style.display="none"; $("#app").style.display="block"; renderTabs(); load();
+  }catch(e){ const el=$("#login_err"); el.textContent=e.message; el.style.display="block"; }
+}
+
+async function load(){
+  const v = $("#view");
+  stashForm();                                  // remember typed values
+  try {
+    if(tab==="Overview") v.innerHTML = await overview();
+    else if(tab==="Admin Requests") v.innerHTML = await requests();
+    else if(tab==="Admins") v.innerHTML = await admins();
+    else if(tab==="Users") v.innerHTML = await users();
+    else if(tab==="Security Events") v.innerHTML = await events();
+    else if(tab==="Attack Analytics") v.innerHTML = await attacks();
+    else if(tab==="Audit Logs") v.innerHTML = await auditLogs();
+    else if(tab==="Auth Events") v.innerHTML = await authEvents();
+    else if(tab==="System Status") v.innerHTML = await systemStatus();
+    else if(tab==="Messages") v.innerHTML = await messages();
+    else if(tab==="Mail") v.innerHTML = await mail();
+  } catch(e){ v.innerHTML = `<div class="alert err">${esc(e.message)}</div>`; }
+  restoreForm();                                // put typed values back
+}
+
+async function overview(){
+  const d = await api("/api/superadmin/overview");
+  const c = d.counts;
+  return `<div class="grid g4">
+    ${["users","sessions","signatures","messages","security_events","admin_requests","analysis_snapshots","unauthorized_verifications"]
+      .map(k=>`<div class="card kpi"><div class="v">${c[k]??0}</div><div class="l">${k.replace(/_/g," ")}</div></div>`).join("")}
+  </div>
+  <div class="card"><h3>Database</h3><p class="muted">Dialect: <b>${esc(d.database.dialect)}</b> · pooled: ${d.database.pooled} · sqlite fallback: ${d.database.fallback_sqlite}</p>
+  <p class="muted">${esc(d.urls.note_superadmin_local_only)}</p></div>
+  <div class="card"><h3>Users by role</h3><table><thead><tr><th>Role</th><th>Count</th></tr></thead><tbody>
+    ${d.by_role.map(r=>`<tr><td>${esc(r.role)}</td><td class="mono">${r.c}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+async function requests(){
+  const d = await api("/api/superadmin/admin-requests");
+  return `<div class="card"><div class="row" style="justify-content:space-between">
+    <h3 style="margin:0">Admin registration requests</h3>
+    <a href="/api/superadmin/admin-requests/pdf" target="_blank"><button class="sm">⬇ Download PDF</button></a></div>
+  <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Dept</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+  ${d.requests.map(r=>`<tr><td class="mono">${esc(r.request_id)}</td><td>${esc(r.full_name)}</td><td>${esc(r.email)}</td>
+    <td>${esc(r.department||"")}</td><td>${esc(r.status)}</td>
+    <td>${r.status==="PENDING"?`<button class="sm primary" onclick="approve('${r.request_id}')">Approve</button>
+      <button class="sm" onclick="reject('${r.request_id}')">Reject</button>`:"—"}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+async function approve(id){
+  try{ const r = await api(`/api/superadmin/admin-requests/${id}/approve`,{method:"POST",body:{}});
+    lastAccount=r.account; lastWelcome=(r.mail&&r.mail.welcome_message)||"";
+    alert(`Approved.\nAdmin ID: ${r.account.username}\nTemporary password: ${r.account.password}\nWelcome email sent: ${r.mail.sent}`);
+    setTab("Admins");
+  }catch(e){ alert(e.message); }
+}
+async function reject(id){
+  const note = prompt("Rejection note (optional):") || "";
+  try{ await api(`/api/superadmin/admin-requests/${id}/reject`,{method:"POST",body:{note}}); load(); }catch(e){ alert(e.message); }
+}
+
+function createdPanel(){
+  if(!lastAccount) return "";
+  return `<div class="card" style="border-color:rgba(47,191,113,.4)">
+    <h3 style="color:#9be6bd">✓ Admin Created Successfully</h3>
+    <div class="grid g3">
+      <div><div class="muted">Name</div><b>${esc(lastAccount.full_name||"")}</b></div>
+      <div><div class="muted">Email</div><b class="mono">${esc(lastAccount.email||lastAccount.username||"")}</b></div>
+      <div><div class="muted">Temporary Password</div><b class="mono">${esc(lastAccount.password||"")}</b></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button onclick="copyCreds()">Copy Credentials</button>
+      <button onclick="copyWelcome()">Copy Welcome Message</button>
+      <button onclick="copyText(lastWelcome,'Welcome message')">Copy Full Message</button>
+    </div>
+    <p class="muted" style="margin-top:8px">The plaintext password is shown ONCE and is stored only as a hash.</p></div>`;
+}
+function copyCreds(){ if(lastAccount) copyText(`Name: ${lastAccount.full_name}\nEmail: ${lastAccount.email||lastAccount.username}\nTemporary Password: ${lastAccount.password}\nLogin: ${location.origin}/login`, "Credentials"); }
+function copyWelcome(){ copyText(lastWelcome || "No welcome message", "Welcome message"); }
+
+async function admins(){
+  const d = await api("/api/superadmin/admins");
+  return `${createdPanel()}
+  <div class="card"><h3>Create Admin</h3>
+    <div class="grid g3">
+      <div><label>Full Name</label><input id="na_name" /></div>
+      <div><label>Email</label><input id="na_email" /></div>
+      <div><label>Department</label><input id="na_dept" value="Administration" /></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" onclick="createAdmin()">Create Admin</button>
+      <button onclick="genPw()">Generate password</button>
+      <span id="genpw" class="mono muted"></span>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:12px">
+      <input type="checkbox" id="na_cc_super" style="width:auto" />
+      Also copy the Super Admin (default: the Admin gets it directly)
+    </label>
+    <p class="muted" style="margin-top:8px">A strong random temporary password is generated automatically. The welcome mail goes straight to the Admin's OWN inbox; tick the box to also copy the Super Admin.</p></div>
+  <div class="card"><h3>Admins</h3><table><thead><tr><th>Admin ID</th><th>Name</th><th>Dept</th><th>Active</th><th>Must change</th><th>Actions</th></tr></thead><tbody>
+  ${d.admins.map(a=>`<tr><td class="mono">${esc(a.username)}</td><td>${esc(a.full_name)}</td><td>${esc(a.department||"")}</td>
+    <td>${a.is_active?"yes":"no"}</td>
+    <td>${a.must_change_password?"yes":"no"}</td>
+    <td><button class="sm" onclick="adminAct('${esc(a.username)}','enable')">Activate</button>
+        <button class="sm" onclick="adminAct('${esc(a.username)}','disable')">Deactivate</button>
+        <button class="sm primary" onclick="mailAdmin('${esc(a.username)}')">Mail Admin</button>
+        <button class="sm" onclick="resetPw('${esc(a.username)}')">Reset PW</button>
+        <button class="sm" onclick="detail('${esc(a.username)}')">Details</button>
+        <button class="sm" onclick="adminAct('${esc(a.username)}','remove')">Remove</button></td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+async function genPw(){ try{ const r = await api("/api/superadmin/password/generate?length=16"); $("#genpw").textContent = r.password; }catch(e){ alert(e.message);} }
+async function createAdmin(){
+  try{ const r = await api("/api/superadmin/admins",{method:"POST",body:{full_name:$("#na_name").value,email:$("#na_email").value,department:$("#na_dept").value,cc_superadmin:(($("#na_cc_super")||{}).checked||false)}});
+    lastAccount=r.account; lastWelcome=(r.mail&&r.mail.welcome_message)||""; lastRecipients=(r.mail&&r.mail.recipients)||[];
+    if(lastRecipients.length){ alert("Mail bheja: "+lastRecipients.join(", ")); }
+    else { alert("Mail nahi bheja gaya (SMTP off ya koi recipient nahi). Welcome message copy button se bhej do."); }
+    setTab("Admins");
+  }catch(e){ alert(e.message); }
+}
+async function adminAct(u,a){ try{ await api(`/api/superadmin/admins/${encodeURIComponent(u)}/status/${a}`,{method:"POST"}); load(); }catch(e){ alert(e.message);} }
+async function resetPw(u){
+  if(!confirm("Reset password for "+u+"? A new temporary password will be generated.")) return;
+  try{ const r = await api(`/api/superadmin/admins/${encodeURIComponent(u)}/reset-password`,{method:"POST"});
+    lastAccount=r.account; lastWelcome=(r.mail&&r.mail.welcome_message)||""; setTab("Admins");
+  }catch(e){ alert(e.message); }
+}
+async function mailAdmin(u){
+  if(!confirm("Fresh welcome mail (naye temporary password ke saath) bhejni hai to "+u+" par?")) return;
+  try{ const r = await api(`/api/superadmin/admins/${encodeURIComponent(u)}/resend-welcome`,{method:"POST",body:{to_admin:true,to_superadmin:false}});
+    lastAccount=r.account; lastWelcome=(r.mail&&r.mail.welcome_message)||""; lastRecipients=(r.mail&&r.mail.recipients)||[];
+    alert("Mail bheja: "+(lastRecipients.join(", ")||"(koi recipient nahi)"));
+    setTab("Admins");
+  }catch(e){ alert(e.message); }
+}
+async function detail(u){
+  try{ const d = await api(`/api/superadmin/admins/${encodeURIComponent(u)}`);
+    alert(JSON.stringify(d.admin,null,2)+`\n\nSenders under this admin: ${d.senders}`);
+  }catch(e){ alert(e.message); }
+}
+
+async function users(){
+  const d = await api("/api/superadmin/users");
+  return `<div class="card"><h3>Senders / Receivers</h3><table><thead><tr><th>Username</th><th>Name</th><th>Department</th><th>Managed by</th><th>Active</th><th>Actions</th></tr></thead><tbody>
+  ${d.users.map(u=>`<tr><td class="mono">${esc(u.username)}</td><td>${esc(u.full_name)}</td><td>${esc(u.department||"")}</td>
+    <td class="mono">${esc(u.owner_admin||"—")}</td><td>${u.is_active?"yes":"no"}</td>
+    <td><button class="sm" onclick="userAct('${esc(u.username)}','enable')">Enable</button>
+        <button class="sm" onclick="userAct('${esc(u.username)}','disable')">Disable</button>
+        <button class="sm" onclick="userAct('${esc(u.username)}','remove')">Remove</button></td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+async function userAct(u,a){ try{ await api(`/api/superadmin/users/${encodeURIComponent(u)}/${a}`,{method:"POST"}); load(); }catch(e){ alert(e.message);} }
+
+async function events(){
+  const d = await api("/api/superadmin/security-events?limit=200");
+  return `<div class="card"><h3>All security events</h3><table><thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Description</th></tr></thead><tbody>
+  ${d.events.map(e=>`<tr><td class="mono">${fmt(e.timestamp)}</td><td>${esc(e.event_type)}</td><td>${esc(e.severity)}</td><td class="muted">${esc(e.description)}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+async function attacks(){
+  const d = await api("/api/superadmin/attack-analytics");
+  return `<div class="card"><h3>Attack analytics (live)</h3>
+    <p class="muted">Unauthorized verifications: <b>${d.unauthorized}</b></p>
+    <div class="grid g2"><div><h4>By type</h4><table><thead><tr><th>Type</th><th>Count</th></tr></thead><tbody>
+      ${d.by_type.map(r=>`<tr><td>${esc(r.event_type)}</td><td class="mono">${r.c}</td></tr>`).join("")}
+    </tbody></table></div><div><h4>By severity</h4><table><thead><tr><th>Severity</th><th>Count</th></tr></thead><tbody>
+      ${d.by_severity.map(r=>`<tr><td>${esc(r.severity)}</td><td class="mono">${r.c}</td></tr>`).join("")}
+    </tbody></table></div></div></div>`;
+}
+
+async function auditLogs(){
+  const d = await api("/api/superadmin/audit-logs?limit=300");
+  return `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Audit logs</h3>
+    <button class="sm" onclick="load()">Refresh</button></div>
+  <table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th><th>IP</th></tr></thead><tbody>
+  ${d.logs.map(l=>`<tr><td class="mono">${fmt(l.created_at)}</td><td class="mono">${esc(l.actor||"—")}</td>
+    <td>${esc(l.action)}</td><td class="mono">${esc(l.target||"—")}</td><td>${esc(l.result||"")}</td><td class="mono">${esc(l.ip||"")}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+async function authEvents(){
+  const d = await api("/api/superadmin/auth-events?limit=300");
+  return `<div class="card"><h3>Authentication events</h3><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Result</th><th>IP</th></tr></thead><tbody>
+  ${d.events.map(e=>`<tr><td class="mono">${fmt(e.created_at)}</td><td class="mono">${esc(e.actor||"—")}</td>
+    <td>${esc(e.action)}</td><td>${esc(e.result||"")}</td><td class="mono">${esc(e.ip||"")}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+async function systemStatus(){
+  const s = await api("/api/superadmin/system-status");
+  const db = s.database || {};
+  const badge = (ok)=>`<b style="color:${ok?"#9be6bd":"#ffb4b6"}">${ok?"READY/CONFIGURED":"NOT READY"}</b>`;
+  return `<div class="card"><h3>System status</h3>
+    <div class="grid g2">
+      <div><div class="muted">Database</div><b>${db.dialect==="postgresql"?"PostgreSQL":"SQLite (development)"}</b></div>
+      <div><div class="muted">Database Status</div>${badge(db.connected)}</div>
+      <div><div class="muted">Schema</div>${badge(db.ready)}</div>
+      <div><div class="muted">Authentication</div>${badge(s.auth_ready)}</div>
+      <div><div class="muted">Google OAuth</div><b>${s.google_oauth?"CONFIGURED":"NOT CONFIGURED"}</b></div>
+      <div><div class="muted">SMTP</div><b>${s.smtp?"CONFIGURED":"NOT CONFIGURED"}</b></div>
+      <div><div class="muted">Qiskit</div><b>${s.qiskit?"AVAILABLE":"NOT INSTALLED (OS-entropy fallback)"}</b></div>
+      <div><div class="muted">Super Admin email</div><b class="mono">${esc(s.super_admin_email||"not set")}</b></div>
+      <div><div class="muted">Public base URL</div><b class="mono">${esc(s.public_base_url||"")}</b></div>
+      <div><div class="muted">Mail check</div><b>${esc((s.mail_check&&s.mail_check.message)||"")}</b></div>
+    </div></div>`;
+}
+
+async function messages(){
+  const d = await api("/api/superadmin/messages");
+  return `<div class="card"><h3>Two-way messaging with Admins</h3><table><thead><tr><th>Admin</th><th>Department</th><th>Unread</th><th>Reply</th></tr></thead><tbody>
+  ${d.threads.map(t=>`<tr><td class="mono">${esc(t.username)}</td><td>${esc(t.department||"")}</td><td>${t.unread}</td>
+    <td><input id="reply_${esc(t.username)}" placeholder="reply…" style="width:220px;display:inline-block" />
+        <button class="sm primary" onclick="reply('${esc(t.username)}')">Send</button></td></tr>`).join("")}
+  </tbody></table>${d.threads.length?"":'<p class="muted">No admin messages yet.</p>'}</div>`;
+}
+async function reply(u){
+  const el = document.getElementById("reply_"+u); const val = el ? el.value : "";
+  try{ await api("/api/superadmin/messages/reply",{method:"POST",body:{to_user:u,body:val}}); load(); }catch(e){ alert(e.message);} }
+
+async function mail(){
+  const c = await api("/api/superadmin/mail/check");
+  return `<div class="card"><h3>Mail check</h3><p class="muted">configured: ${c.configured} · ok: ${c.ok} · ${esc(c.message)}</p></div>
+  <div class="card"><h3>Send mail</h3>
+    <div class="grid g2"><div><label>To</label><input id="m_to" /></div><div><label>Subject</label><input id="m_sub" /></div></div>
+    <label>Body</label><textarea id="m_body"></textarea>
+    <button class="primary" style="margin-top:10px" onclick="sendMail()">SEND</button>
+    <div id="m_res" class="alert"></div></div>`;
+}
+async function sendMail(){
+  try{ const r = await api("/api/superadmin/mail/send",{method:"POST",body:{to:$("#m_to").value,subject:$("#m_sub").value,body:$("#m_body").value}});
+    const el=$("#m_res"); el.className="alert "+(r.sent?"ok":"err"); el.textContent=r.message;
+  }catch(e){ const el=$("#m_res"); el.className="alert err"; el.textContent=e.message; }
+}
+
+(async () => {
+  try{ const me = await api("/api/auth/me");
+    if(me && me.role==="superadmin"){ $("#login").style.display="none"; $("#app").style.display="block"; renderTabs(); load(); }
+  }catch(e){ /* not signed in */ }
+})();
+</script>
+</body>
+</html>

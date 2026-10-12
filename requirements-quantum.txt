@@ -1,0 +1,13 @@
+# OPTIONAL quantum extras — real superposition + measurement randomness via
+# Qiskit Aer. If this install fails or the machine cannot run it, TRISHUL-Q
+# automatically falls back to OS entropy (secrets) and everything still works.
+# Do NOT make these mandatory.
+qiskit>=1.0
+qiskit-aer>=0.14
+
+# OPTIONAL: real IBM Quantum cloud QRNG. Save your account first
+#   (https://quantum.ibm.com/ — "Create instance / token"), then:
+#     pip install qiskit-ibm-runtime
+#     export QDS_IBM_BACKEND=ibm_brisbane      (any backend name)
+#   If the cloud is unreachable the QRNG silently falls back to local Aer.
+# qiskit-ibm-runtime>=0.30

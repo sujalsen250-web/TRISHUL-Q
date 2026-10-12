@@ -1,0 +1,39 @@
+# TRISHUL-Q — PostgreSQL (primary datastore) + optional app container.
+#
+#   docker compose up -d db     # start PostgreSQL only (on host port 15432)
+#   docker compose up --build   # build + run the whole stack
+#
+services:
+  db:
+    image: postgres:16
+    container_name: trishulq-db
+    environment:
+      POSTGRES_USER: trishul
+      POSTGRES_PASSWORD: trishul
+      POSTGRES_DB: trishulq
+    ports:
+      - "15432:5432"
+    volumes:
+      - trishulq_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trishul -d trishulq"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: trishulq-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://trishul:trishul@db:5432/trishulq
+      TRISHUL_DB_FALLBACK: "0"
+      APP_MODE: lan
+    ports:
+      - "8000:8000"
+    command: python server.py --host 0.0.0.0 --port 8000
+
+volumes:
+  trishulq_pgdata:
